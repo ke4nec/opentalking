@@ -2,7 +2,13 @@ FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ARG UBUNTU_MIRROR=archive.ubuntu.com
+
+RUN if [ "$UBUNTU_MIRROR" != "archive.ubuntu.com" ]; then \
+        sed -i "s|http://archive.ubuntu.com|https://${UBUNTU_MIRROR}|g; s|http://security.ubuntu.com|https://${UBUNTU_MIRROR}|g" /etc/apt/sources.list; \
+    fi \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
@@ -11,14 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md LICENSE ./
-COPY src ./src
+COPY opentalking ./opentalking
 COPY apps ./apps
 COPY configs ./configs
 COPY examples ./examples
 COPY scripts ./scripts
 
-RUN python -m pip install --no-cache-dir -U pip setuptools wheel \
-    && python -m pip install --no-cache-dir -e ".[engine]"
+ARG PIP_INDEX_URL=https://pypi.org/simple
+
+RUN python -m pip install --index-url "$PIP_INDEX_URL" --no-cache-dir -U pip setuptools wheel \
+    && python -m pip install --index-url "$PIP_INDEX_URL" --no-cache-dir -e ".[engine]"
 
 EXPOSE 8765
 

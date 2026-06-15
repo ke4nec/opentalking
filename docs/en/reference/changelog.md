@@ -1,6 +1,21 @@
 # Changelog
 
-This page tracks OpenTalking capability progress, roadmap items, and compatibility notes.
+This page tracks OpenTalking releases, capability progress, roadmap items, and compatibility notes.
+
+## v0.1.0 - 2026-06-16
+
+- **First GitHub Release**
+  Published the initial release package for the OpenTalking orchestration layer, including API, worker, web console, and documentation-backed install paths.
+
+- **Docker delivery**
+  Added versioned GHCR image targets for `opentalking-api`, `opentalking-worker`, and `opentalking-web`.
+
+- **Python artifacts**
+  The release workflow builds and checks wheel and source distribution artifacts for GitHub Release attachment.
+
+- **Packaging boundary**
+  Model weights are not bundled in Python packages or Docker images; users should follow model-specific download and OmniRT/runtime setup docs.
+
 
 ## May 2026
 
@@ -42,6 +57,6 @@ This page tracks OpenTalking capability progress, roadmap items, and compatibili
 
 ## Compatibility Notes
 
-- This changelog currently tracks capability progress rather than formal release versions.
+- Starting with `v0.1.0`, this changelog includes formal release sections.
 - Model integration, runtime backends, and configuration keys are still evolving quickly. Check “Model Support” and “Usage Guide” before upgrading.
 - Benchmark data must include hardware, model, backend, startup state, and input assets; numbers should not be compared across environments without context.
