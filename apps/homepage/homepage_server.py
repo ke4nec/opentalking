@@ -5,7 +5,7 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from html import escape
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -19,10 +19,13 @@ DIST_DIR = ROOT / "dist"
 GITHUB_REPO_OWNER = "datascale-ai"
 GITHUB_REPO_NAME = "opentalking"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
+GITHUB_STARGAZERS_API_URL = f"{GITHUB_API_URL}/stargazers"
+GITHUB_FORKS_API_URL = f"{GITHUB_API_URL}/forks"
 ANALYTICS_DB_PATH = Path(os.getenv("HOMEPAGE_ANALYTICS_DB", ROOT / ".analytics" / "homepage_analytics.sqlite3"))
 ANALYTICS_HASH_SALT = os.getenv("HOMEPAGE_ANALYTICS_SALT", "opentalking-homepage")
 MAX_FIELD_LENGTH = 500
 BEIJING_TZ = timezone(timedelta(hours=8))
+TREND_DAYS = 14
 
 app = FastAPI(docs_url=None, redoc_url=None)
 
@@ -190,23 +193,44 @@ TRAFFIC_COPY = {
         "language_href": "/en/traffic",
         "empty": "暂无数据。",
         "cards": {
-            "today": "今日访问",
-            "seven_day": "7 天访问",
-            "total": "累计访问",
+            "today": "今日浏览",
+            "seven_day": "14 天浏览",
+            "total": "累计浏览",
             "video": "视频播放",
             "visitors": "累计访客",
+        },
+        "deltas": {
+            "today": "较昨日",
+            "seven_day": "较前 14 天",
+            "total": "今日新增浏览",
+            "video": "今日新增播放",
+            "visitors": "今日新增访客",
+            "increase": "增加",
+            "decrease": "减少",
+            "flat": "持平",
+        },
+        "delta_help": {
+            "today": "今日浏览量减去昨日浏览量，用来观察当天页面浏览变化。",
+            "seven_day": "最近 14 天浏览量减去前一个 14 天窗口浏览量。",
+            "total": "累计浏览的今日增量，今天新增的页面浏览次数。",
+            "video": "视频播放总量的今日增量，今天新增的视频播放次数。",
+            "visitors": "累计访客的今日增量，今天首次出现的新访客数。",
         },
         "sections": {
             "top_pages": "热门页面",
             "top_referrers": "来源排行",
             "top_videos": "视频播放排行",
-            "daily_views": "每日访问",
+            "daily_views": "每日浏览",
         },
         "charts": {
-            "views_title": "过去 7 天访问量",
-            "unique_title": "过去 7 天独立访客",
+            "views_title": "过去 14 天浏览量",
+            "unique_title": "过去 14 天独立访客",
+            "stars_title": "最近 14 天 Star 趋势",
+            "forks_title": "最近 14 天 Fork 趋势",
             "views_total": "Views",
             "unique_total": "Unique Visitors",
+            "stars_total": "Stars",
+            "forks_total": "Forks",
             "view_table": "View as table",
             "download_csv": "Download CSV",
             "show_labels": "Show data labels",
@@ -224,12 +248,22 @@ TRAFFIC_COPY = {
         },
         "columns": {
             "path": "路径",
-            "views": "访问",
+            "views": "浏览",
             "uniques": "独立访客",
             "source": "来源",
             "video": "视频",
             "plays": "播放",
             "day": "日期",
+        },
+        "direct_unknown_help": {
+            "label": "Direct / Unknown 来源说明",
+            "title": "Direct / Unknown的路由来源？",
+            "items": [
+                "用户直接输入网址、从书签或桌面快捷方式打开。",
+                "微信、QQ、飞书、邮件、文档等应用可能不传递来源。",
+                "浏览器隐私策略、插件或部分网站会隐藏 Referer。",
+                "GitHub About 等外链可能使用 noreferrer，来源被清空。",
+            ],
         },
     },
     "en": {
@@ -243,10 +277,27 @@ TRAFFIC_COPY = {
         "empty": "No data yet.",
         "cards": {
             "today": "Today views",
-            "seven_day": "7-day views",
+            "seven_day": "14-day views",
             "total": "Total views",
             "video": "Video plays",
             "visitors": "Total visitors",
+        },
+        "deltas": {
+            "today": "vs yesterday",
+            "seven_day": "vs previous 14 days",
+            "total": "new views today",
+            "video": "new plays today",
+            "visitors": "new visitors today",
+            "increase": "up",
+            "decrease": "down",
+            "flat": "no change",
+        },
+        "delta_help": {
+            "today": "Today’s page views minus yesterday’s page views.",
+            "seven_day": "Page views from the latest 14-day window minus the previous 14-day window.",
+            "total": "The daily increase in total views, which equals today’s new page views.",
+            "video": "The daily increase in total video plays.",
+            "visitors": "The daily increase in total visitors, counted as newly seen visitors today.",
         },
         "sections": {
             "top_pages": "Top Pages",
@@ -255,10 +306,14 @@ TRAFFIC_COPY = {
             "daily_views": "Daily Views",
         },
         "charts": {
-            "views_title": "Total views in last 7 days",
-            "unique_title": "Unique visitors in last 7 days",
+            "views_title": "Total views in last 14 days",
+            "unique_title": "Unique visitors in last 14 days",
+            "stars_title": "Stars in last 14 days",
+            "forks_title": "Forks in last 14 days",
             "views_total": "Views",
             "unique_total": "Unique Visitors",
+            "stars_total": "Stars",
+            "forks_total": "Forks",
             "view_table": "View as table",
             "download_csv": "Download CSV",
             "show_labels": "Show data labels",
@@ -283,6 +338,16 @@ TRAFFIC_COPY = {
             "plays": "Plays",
             "day": "Day",
         },
+        "direct_unknown_help": {
+            "label": "Direct / Unknown source details",
+            "title": "Why Direct / Unknown?",
+            "items": [
+                "Visitors typed the URL directly, used a bookmark, or opened a desktop shortcut.",
+                "Apps such as WeChat, QQ, Feishu, email clients, or documents may strip the referrer.",
+                "Browser privacy settings, extensions, or some websites may hide the Referer header.",
+                "External links such as GitHub About can use noreferrer, so the source is not available.",
+            ],
+        },
     },
 }
 
@@ -305,7 +370,7 @@ def parse_event_datetime(value):
 
 def build_seven_day_traffic(beijing_now):
     today = beijing_now.date()
-    days = [today - timedelta(days=offset) for offset in reversed(range(7))]
+    days = [today - timedelta(days=offset) for offset in reversed(range(TREND_DAYS))]
     day_keys = {day.isoformat(): {"label": day.strftime("%m/%d"), "views": 0, "visitors": set()} for day in days}
     start_at = datetime(days[0].year, days[0].month, days[0].day, tzinfo=BEIJING_TZ).astimezone(timezone.utc).isoformat()
     events = query_rows(
@@ -354,6 +419,152 @@ def build_daily_views(beijing_now):
     ]
 
 
+def fetch_github_json(url, accept="application/vnd.github+json"):
+    request = Request(
+        url,
+        headers={
+            "Accept": accept,
+            "User-Agent": "opentalking-homepage",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+
+    with urlopen(request, timeout=10) as response:
+        return json.loads(response.read().decode("utf-8")), response.headers
+
+
+def get_last_github_page(link_header):
+    if not link_header:
+        return 1
+
+    for item in link_header.split(","):
+        if 'rel="last"' not in item:
+            continue
+
+        start = item.find("<")
+        end = item.find(">")
+
+        if start == -1 or end == -1:
+            continue
+
+        query = parse_qs(urlparse(item[start + 1:end]).query)
+
+        try:
+            return int(query.get("page", ["1"])[0])
+        except ValueError:
+            return 1
+
+    return 1
+
+
+def collect_recent_github_datetimes(url, time_key, since_datetime, accept="application/vnd.github+json", newest_first=False):
+    recent_datetimes = []
+    first_url = f"{url}{'&' if '?' in url else '?'}per_page=100"
+
+    try:
+        first_page, headers = fetch_github_json(first_url, accept)
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return recent_datetimes
+
+    pages_to_scan = []
+
+    if newest_first:
+        pages_to_scan = [first_page]
+    else:
+        last_page = get_last_github_page(headers.get("Link"))
+        page_numbers = range(last_page, max(last_page - 5, 0), -1)
+
+        for page_number in page_numbers:
+            if page_number == 1:
+                pages_to_scan.append(first_page)
+                continue
+
+            try:
+                page, _ = fetch_github_json(f"{first_url}&page={page_number}", accept)
+            except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError):
+                continue
+
+            pages_to_scan.append(page)
+
+    should_stop = False
+
+    for page in pages_to_scan:
+        if not isinstance(page, list):
+            continue
+
+        iterable_page = page if newest_first else reversed(page)
+
+        for item in iterable_page:
+            event_time = parse_event_datetime(item.get(time_key, ""))
+
+            if event_time is None:
+                continue
+
+            if event_time < since_datetime:
+                should_stop = True
+                continue
+
+            recent_datetimes.append(event_time)
+
+        if should_stop:
+            break
+
+    return recent_datetimes
+
+
+def build_cumulative_github_trend(beijing_now, current_total, event_datetimes):
+    today = beijing_now.date()
+    days = [today - timedelta(days=offset) for offset in reversed(range(TREND_DAYS))]
+    points = []
+
+    for day in days:
+        next_day_start = datetime(day.year, day.month, day.day, tzinfo=BEIJING_TZ) + timedelta(days=1)
+        next_day_start_utc = next_day_start.astimezone(timezone.utc)
+        later_events = sum(1 for event_time in event_datetimes if event_time >= next_day_start_utc)
+
+        points.append(
+            {
+                "date": day.isoformat(),
+                "label": day.strftime("%m/%d"),
+                "count": max(current_total - later_events, 0),
+            }
+        )
+
+    return points
+
+
+def build_github_trends(beijing_now):
+    since_day = beijing_now.date() - timedelta(days=TREND_DAYS - 1)
+    since_datetime = datetime(since_day.year, since_day.month, since_day.day, tzinfo=BEIJING_TZ).astimezone(timezone.utc)
+
+    try:
+        repo_data, _ = fetch_github_json(GITHUB_API_URL)
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError):
+        repo_data = {}
+
+    star_total = int(repo_data.get("stargazers_count") or 0)
+    fork_total = int(repo_data.get("forks_count") or 0)
+    star_datetimes = collect_recent_github_datetimes(
+        GITHUB_STARGAZERS_API_URL,
+        "starred_at",
+        since_datetime,
+        accept="application/vnd.github.star+json",
+    )
+    fork_datetimes = collect_recent_github_datetimes(
+        f"{GITHUB_FORKS_API_URL}?sort=newest",
+        "created_at",
+        since_datetime,
+        newest_first=True,
+    )
+
+    return {
+        "stars": build_cumulative_github_trend(beijing_now, star_total, star_datetimes),
+        "forks": build_cumulative_github_trend(beijing_now, fork_total, fork_datetimes),
+        "star_total": star_total,
+        "fork_total": fork_total,
+    }
+
+
 def nice_chart_ceiling(value):
     if value <= 4:
         return 4
@@ -364,6 +575,10 @@ def nice_chart_ceiling(value):
     magnitude = 10 ** (len(str(value)) - 1)
 
     return ((value + magnitude - 1) // magnitude) * magnitude
+
+
+def beijing_day_start(day):
+    return datetime(day.year, day.month, day.day, tzinfo=BEIJING_TZ).astimezone(timezone.utc).isoformat()
 
 
 @app.get("/traffic")
@@ -380,32 +595,55 @@ def render_traffic_dashboard(language):
     copy = TRAFFIC_COPY[language]
     now = datetime.now(timezone.utc)
     beijing_now = now.astimezone(BEIJING_TZ)
-    today_start = datetime(
-        beijing_now.year,
-        beijing_now.month,
-        beijing_now.day,
-        tzinfo=BEIJING_TZ,
-    ).astimezone(timezone.utc).isoformat()
-    seven_day_start_date = beijing_now.date() - timedelta(days=6)
-    seven_day_start = datetime(
-        seven_day_start_date.year,
-        seven_day_start_date.month,
-        seven_day_start_date.day,
-        tzinfo=BEIJING_TZ,
-    ).astimezone(timezone.utc).isoformat()
+    today = beijing_now.date()
+    yesterday = today - timedelta(days=1)
+    previous_seven_day_start_date = today - timedelta(days=TREND_DAYS * 2 - 1)
+    seven_day_start_date = beijing_now.date() - timedelta(days=TREND_DAYS - 1)
+    today_start = beijing_day_start(today)
+    yesterday_start = beijing_day_start(yesterday)
+    seven_day_start = beijing_day_start(seven_day_start_date)
+    previous_seven_day_start = beijing_day_start(previous_seven_day_start_date)
 
     total_page_views = query_value("SELECT COUNT(*) AS count FROM analytics_events WHERE event_name = 'page_view'")
     today_page_views = query_value(
         "SELECT COUNT(*) AS count FROM analytics_events WHERE event_name = 'page_view' AND created_at >= ?",
         (today_start,),
     )
+    yesterday_page_views = query_value(
+        """
+        SELECT COUNT(*) AS count
+        FROM analytics_events
+        WHERE event_name = 'page_view' AND created_at >= ? AND created_at < ?
+        """,
+        (yesterday_start, today_start),
+    )
     seven_day_page_views = query_value(
         "SELECT COUNT(*) AS count FROM analytics_events WHERE event_name = 'page_view' AND created_at >= ?",
         (seven_day_start,),
     )
+    previous_seven_day_page_views = query_value(
+        """
+        SELECT COUNT(*) AS count
+        FROM analytics_events
+        WHERE event_name = 'page_view' AND created_at >= ? AND created_at < ?
+        """,
+        (previous_seven_day_start, seven_day_start),
+    )
     video_plays = query_value("SELECT COUNT(*) AS count FROM analytics_events WHERE event_name = 'video_play'")
+    today_video_plays = query_value(
+        "SELECT COUNT(*) AS count FROM analytics_events WHERE event_name = 'video_play' AND created_at >= ?",
+        (today_start,),
+    )
     unique_visitors = query_value(
         "SELECT COUNT(DISTINCT ip_hash) AS count FROM analytics_events WHERE event_name = 'page_view' AND ip_hash != ''"
+    )
+    previous_unique_visitors = query_value(
+        """
+        SELECT COUNT(DISTINCT ip_hash) AS count
+        FROM analytics_events
+        WHERE event_name = 'page_view' AND ip_hash != '' AND created_at < ?
+        """,
+        (today_start,),
     )
     seven_day_unique_visitors = query_value(
         """
@@ -437,6 +675,7 @@ def render_traffic_dashboard(language):
             COUNT(DISTINCT CASE WHEN ip_hash != '' THEN ip_hash END) AS uniques
         FROM analytics_events
         WHERE event_name = 'page_view'
+            AND referrer_host NOT IN ('opentalking.net', 'www.opentalking.net')
         GROUP BY referrer_host
         ORDER BY count DESC
         LIMIT 10
@@ -460,7 +699,53 @@ def render_traffic_dashboard(language):
         for row in top_videos
     ]
     seven_day_traffic = build_seven_day_traffic(beijing_now)
+    github_trends = build_github_trends(beijing_now)
     daily_views = build_daily_views(beijing_now)
+
+    card_deltas = {
+        "today": today_page_views - yesterday_page_views,
+        "seven_day": seven_day_page_views - previous_seven_day_page_views,
+        "total": today_page_views,
+        "video": today_video_plays,
+        "visitors": unique_visitors - previous_unique_visitors,
+    }
+
+    def render_delta(key, value):
+        delta_label = copy["deltas"][key]
+
+        if value > 0:
+            state = "positive"
+            sign = "+"
+            trend_word = copy["deltas"]["increase"]
+        elif value < 0:
+            state = "negative"
+            sign = "-"
+            trend_word = copy["deltas"]["decrease"]
+        else:
+            state = "neutral"
+            sign = ""
+            trend_word = copy["deltas"]["flat"]
+
+        title = f'{delta_label} {trend_word} {format_number(abs(value))}'
+
+        return (
+            f'<span class="delta delta-{state}" tabindex="0" role="button" '
+            f'title="{escape(title)}" aria-label="{escape(title)}" '
+            f'data-tooltip-title="{escape(title)}" '
+            f'data-tooltip-body="{escape(copy["delta_help"][key])}">'
+            f'{sign}{escape(format_number(abs(value)))}</span>'
+        )
+
+    def render_metric_card(key, value):
+        return (
+            f'<div class="card">'
+            f'<div class="label">{escape(copy["cards"][key])}</div>'
+            f'<div class="value-row">'
+            f'<span class="value">{escape(format_number(value))}</span>'
+            f'{render_delta(key, card_deltas[key])}'
+            f'</div>'
+            f'</div>'
+        )
 
     def render_table(rows, columns):
         if not rows:
@@ -469,13 +754,29 @@ def render_traffic_dashboard(language):
         head = "".join(f"<th>{escape(label)}</th>" for _, label in columns)
         body_parts = []
 
+        def render_cell(key, value):
+            display_value = value or "-"
+
+            if key == "referrer_host" and display_value == "Direct / Unknown":
+                help_copy = copy["direct_unknown_help"]
+                help_items = "".join(f"<li>{escape(item)}</li>" for item in help_copy["items"])
+
+                return (
+                    f'<td><span class="source-help-wrap">'
+                    f'<span>{escape(display_value)}</span>'
+                    f'<span class="source-help" tabindex="0" role="button" aria-label="{escape(help_copy["label"])}" '
+                    f'data-tooltip-title="{escape(help_copy["title"])}" '
+                    f'data-tooltip-items="{escape(json.dumps(help_copy["items"], ensure_ascii=False))}">i</span>'
+                    f'</span></td>'
+                )
+
+            return f"<td>{escape(str(display_value))}</td>"
+
         for row in rows:
             cells = []
 
             for key, _ in columns:
-                value = row.get(key, "") or "-"
-
-                cells.append(f"<td>{escape(str(value))}</td>")
+                cells.append(render_cell(key, row.get(key, "")))
 
             body_parts.append("<tr>" + "".join(cells) + "</tr>")
 
@@ -518,9 +819,12 @@ def render_traffic_dashboard(language):
             f'<line class="chart-grid-line" x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{top + chart_height}" />'
             for x, _, _ in coords
         ]
+        x_label_indexes = set(range(len(coords))) if len(coords) <= 10 else set(range(0, len(coords), 2))
+
         x_labels = [
             f'<text class="chart-x-label" x="{x:.1f}" y="{height - 12}" text-anchor="middle">{escape(point["label"])}</text>'
-            for x, _, point in coords
+            for index, (x, _, point) in enumerate(coords)
+            if index in x_label_indexes
         ]
         dots = [
             f'<g class="chart-point" tabindex="0" data-label="{escape(point["label"])}" '
@@ -601,7 +905,16 @@ def render_traffic_dashboard(language):
           .card, section {{ border: 1px solid #e2e8f0; background: rgba(255,255,255,.86); border-radius: 14px; box-shadow: 0 18px 50px rgba(15,23,42,.06); }}
           .card {{ padding: 16px; }}
           .label {{ color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; }}
-          .value {{ margin-top: 8px; font-size: 26px; font-weight: 750; }}
+          .value-row {{ display: flex; align-items: baseline; gap: 8px; margin-top: 8px; min-width: 0; }}
+          .value {{ font-size: 26px; font-weight: 750; letter-spacing: 0; }}
+          .delta {{ display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; padding: 2px 6px; font-size: 12px; font-weight: 800; line-height: 1.35; white-space: nowrap; cursor: help; transition: transform .16s ease, box-shadow .16s ease; }}
+          .delta:hover, .delta:focus-visible {{ outline: none; transform: translateY(-1px); box-shadow: 0 8px 18px rgba(15,23,42,.08); }}
+          .delta-positive {{ background: #dcfce7; color: #15803d; }}
+          .delta-negative {{ background: #fee2e2; color: #dc2626; }}
+          .delta-neutral {{ background: #f1f5f9; color: #64748b; }}
+          .delta-help-card {{ position: fixed; z-index: 85; width: min(270px, calc(100vw - 40px)); border: 1px solid #dbe3ec; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 18px 46px rgba(15,23,42,.16); padding: 11px 13px; color: #334155; font-size: 12px; line-height: 1.55; }}
+          .delta-help-card[hidden] {{ display: none; }}
+          .delta-help-card strong {{ display: block; color: #0f172a; font-size: 13px; margin-bottom: 5px; }}
           .grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
           .chart-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }}
           section {{ padding: 18px; overflow: hidden; }}
@@ -611,6 +924,14 @@ def render_traffic_dashboard(language):
           th, td {{ padding: 10px 8px; border-bottom: 1px solid #eef2f7; text-align: left; vertical-align: top; }}
           th {{ position: sticky; top: 0; background: rgba(255,255,255,.96); color: #64748b; font-size: 12px; font-weight: 700; }}
           .empty {{ margin: 0; color: #94a3b8; font-size: 13px; }}
+          .source-help-wrap {{ display: inline-flex; align-items: center; gap: 6px; }}
+          .source-help {{ display: inline-flex; height: 15px; width: 15px; align-items: center; justify-content: center; border-radius: 999px; background: #e0f2fe; color: #0284c7; cursor: help; font-size: 10px; font-weight: 800; line-height: 1; }}
+          .source-help:hover, .source-help:focus-visible {{ background: #bae6fd; color: #0369a1; outline: none; }}
+          .source-help-card {{ position: fixed; z-index: 80; width: min(320px, calc(100vw - 40px)); border: 1px solid #dbe3ec; border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 18px 46px rgba(15,23,42,.16); padding: 12px 14px; color: #334155; font-size: 12px; line-height: 1.55; }}
+          .source-help-card[hidden] {{ display: none; }}
+          .source-help-card strong {{ display: block; color: #0f172a; font-size: 13px; margin-bottom: 6px; }}
+          .source-help-card ul {{ margin: 0; padding-left: 17px; }}
+          .source-help-card li + li {{ margin-top: 4px; }}
           .chart-card {{ min-height: 336px; }}
           .chart-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 8px; }}
           .chart-head h2 {{ margin-bottom: 8px; font-size: 20px; line-height: 1.25; }}
@@ -661,11 +982,11 @@ def render_traffic_dashboard(language):
             </div>
           </div>
           <div class="cards">
-            <div class="card"><div class="label">{escape(copy["cards"]["today"])}</div><div class="value">{today_page_views}</div></div>
-            <div class="card"><div class="label">{escape(copy["cards"]["seven_day"])}</div><div class="value">{seven_day_page_views}</div></div>
-            <div class="card"><div class="label">{escape(copy["cards"]["total"])}</div><div class="value">{total_page_views}</div></div>
-            <div class="card"><div class="label">{escape(copy["cards"]["video"])}</div><div class="value">{video_plays}</div></div>
-            <div class="card"><div class="label">{escape(copy["cards"]["visitors"])}</div><div class="value">{unique_visitors}</div></div>
+            {render_metric_card("today", today_page_views)}
+            {render_metric_card("seven_day", seven_day_page_views)}
+            {render_metric_card("total", total_page_views)}
+            {render_metric_card("video", video_plays)}
+            {render_metric_card("visitors", unique_visitors)}
           </div>
           <div class="grid">
             <section>
@@ -686,8 +1007,10 @@ def render_traffic_dashboard(language):
             </section>
           </div>
           <div class="chart-grid">
-            {render_line_chart(copy["charts"]["views_title"], copy["charts"]["views_total"], seven_day_traffic, "views", "seven-day-views")}
-            {render_line_chart(copy["charts"]["unique_title"], copy["charts"]["unique_total"], seven_day_traffic, "uniques", "seven-day-uniques", seven_day_unique_visitors)}
+            {render_line_chart(copy["charts"]["views_title"], copy["charts"]["views_total"], seven_day_traffic, "views", "fourteen-day-views")}
+            {render_line_chart(copy["charts"]["unique_title"], copy["charts"]["unique_total"], seven_day_traffic, "uniques", "fourteen-day-uniques", seven_day_unique_visitors)}
+            {render_line_chart(copy["charts"]["stars_title"], copy["charts"]["stars_total"], github_trends["stars"], "count", "fourteen-day-stars", github_trends["star_total"])}
+            {render_line_chart(copy["charts"]["forks_title"], copy["charts"]["forks_total"], github_trends["forks"], "count", "fourteen-day-forks", github_trends["fork_total"])}
           </div>
         </main>
         <script>
@@ -696,6 +1019,16 @@ def render_traffic_dashboard(language):
             tooltip.className = "chart-tooltip";
             tooltip.hidden = true;
             document.body.appendChild(tooltip);
+
+            const sourceTooltip = document.createElement("div");
+            sourceTooltip.className = "source-help-card";
+            sourceTooltip.hidden = true;
+            document.body.appendChild(sourceTooltip);
+
+            const deltaTooltip = document.createElement("div");
+            deltaTooltip.className = "delta-help-card";
+            deltaTooltip.hidden = true;
+            document.body.appendChild(deltaTooltip);
 
             const closePopovers = (except) => {{
               document.querySelectorAll(".chart-popover").forEach((popover) => {{
@@ -721,6 +1054,71 @@ def render_traffic_dashboard(language):
 
             const hideTooltip = () => {{
               tooltip.hidden = true;
+            }};
+
+            const positionFloatingCard = (trigger, card) => {{
+              card.hidden = false;
+
+              const rect = trigger.getBoundingClientRect();
+              const tooltipRect = card.getBoundingClientRect();
+              const margin = 12;
+              const left = Math.min(
+                Math.max(rect.left + rect.width / 2 - tooltipRect.width / 2, margin),
+                window.innerWidth - tooltipRect.width - margin
+              );
+              const top = rect.bottom + tooltipRect.height + margin > window.innerHeight
+                ? Math.max(rect.top - tooltipRect.height - 8, margin)
+                : rect.bottom + 8;
+
+              card.style.left = `${{left}}px`;
+              card.style.top = `${{top}}px`;
+            }};
+
+            const showDeltaTooltip = (trigger) => {{
+              const title = trigger.dataset.tooltipTitle || "";
+              const body = trigger.dataset.tooltipBody || "";
+              deltaTooltip.innerHTML = `<strong>${{title}}</strong><div>${{body}}</div>`;
+              positionFloatingCard(trigger, deltaTooltip);
+            }};
+
+            const hideDeltaTooltip = () => {{
+              deltaTooltip.hidden = true;
+            }};
+
+            const showSourceTooltip = (trigger) => {{
+              const title = trigger.dataset.tooltipTitle || "";
+              let items = [];
+
+              try {{
+                items = JSON.parse(trigger.dataset.tooltipItems || "[]");
+              }} catch {{
+                items = [];
+              }}
+
+              sourceTooltip.innerHTML = `
+                <strong>${{title}}</strong>
+                <ul>${{items.map((item) => `<li>${{item}}</li>`).join("")}}</ul>
+              `;
+
+              sourceTooltip.hidden = false;
+
+              const rect = trigger.getBoundingClientRect();
+              const tooltipRect = sourceTooltip.getBoundingClientRect();
+              const margin = 12;
+              const left = Math.min(
+                Math.max(rect.left, margin),
+                window.innerWidth - tooltipRect.width - margin
+              );
+              const top = rect.bottom + tooltipRect.height + margin > window.innerHeight
+                ? Math.max(rect.top - tooltipRect.height - 8, margin)
+                : rect.bottom + 8;
+
+              sourceTooltip.style.left = `${{left}}px`;
+              sourceTooltip.style.top = `${{top}}px`;
+            }};
+
+            const hideSourceTooltip = () => {{
+              sourceTooltip.hidden = true;
             }};
 
             const renderDataTable = (card) => {{
@@ -821,11 +1219,52 @@ def render_traffic_dashboard(language):
               }});
             }});
 
-            document.addEventListener("click", () => closePopovers());
+            document.querySelectorAll(".source-help").forEach((trigger) => {{
+              trigger.addEventListener("pointerenter", () => showSourceTooltip(trigger));
+              trigger.addEventListener("pointerleave", hideSourceTooltip);
+              trigger.addEventListener("mouseover", () => showSourceTooltip(trigger));
+              trigger.addEventListener("mouseout", hideSourceTooltip);
+              trigger.addEventListener("focus", () => showSourceTooltip(trigger));
+              trigger.addEventListener("blur", hideSourceTooltip);
+              trigger.addEventListener("click", (event) => {{
+                event.stopPropagation();
+                showSourceTooltip(trigger);
+              }});
+            }});
+
+            document.querySelectorAll(".delta").forEach((trigger) => {{
+              trigger.addEventListener("pointerenter", () => showDeltaTooltip(trigger));
+              trigger.addEventListener("pointerleave", hideDeltaTooltip);
+              trigger.addEventListener("mouseover", () => showDeltaTooltip(trigger));
+              trigger.addEventListener("mouseout", hideDeltaTooltip);
+              trigger.addEventListener("focus", () => showDeltaTooltip(trigger));
+              trigger.addEventListener("blur", hideDeltaTooltip);
+              trigger.addEventListener("click", (event) => {{
+                event.stopPropagation();
+                showDeltaTooltip(trigger);
+              }});
+            }});
+
+            sourceTooltip.addEventListener("pointerenter", () => {{
+              sourceTooltip.hidden = false;
+            }});
+            sourceTooltip.addEventListener("pointerleave", hideSourceTooltip);
+            deltaTooltip.addEventListener("pointerenter", () => {{
+              deltaTooltip.hidden = false;
+            }});
+            deltaTooltip.addEventListener("pointerleave", hideDeltaTooltip);
+
+            document.addEventListener("click", () => {{
+              closePopovers();
+              hideSourceTooltip();
+              hideDeltaTooltip();
+            }});
             document.addEventListener("keydown", (event) => {{
               if (event.key === "Escape") {{
                 closePopovers();
                 hideTooltip();
+                hideSourceTooltip();
+                hideDeltaTooltip();
               }}
             }});
           }})();
