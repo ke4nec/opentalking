@@ -240,6 +240,9 @@ TRAFFIC_COPY = {
         "video_names": {
             "hero-companion-character": "首页主视觉：陪伴类角色",
             "case-ecommerce-livestream": "案例：电商带货",
+            "case-ecommerce-livestream-front": "案例：电商直播正视",
+            "case-ecommerce-livestream-angle": "案例：电商带货斜视",
+            "case-huangshan-tour-guide": "案例：黄山文旅导览",
             "case-news-anchor": "案例：新闻主播",
             "case-companion-character": "案例：陪伴类角色",
             "case-anime-talk-show": "案例：动漫脱口秀",
@@ -323,6 +326,9 @@ TRAFFIC_COPY = {
         "video_names": {
             "hero-companion-character": "Hero: Companion Character",
             "case-ecommerce-livestream": "Case: E-commerce Livestream",
+            "case-ecommerce-livestream-front": "Case: E-commerce Front View",
+            "case-ecommerce-livestream-angle": "Case: E-commerce Angled View",
+            "case-huangshan-tour-guide": "Case: Huangshan Tourism Guide",
             "case-news-anchor": "Case: News Anchor",
             "case-companion-character": "Case: Companion Character",
             "case-anime-talk-show": "Case: Anime Talk Show",

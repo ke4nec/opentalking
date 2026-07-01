@@ -16,7 +16,7 @@ export type CaseStudy = {
   slug: string;
   title: string;
   eyebrow: string;
-  category: "livestream" | "media" | "character" | "companion" | "experiment";
+  category: "livestream" | "media" | "tourism" | "character" | "companion" | "experiment";
   categoryLabel: string;
   description: string;
   detailIntro: string;
@@ -27,6 +27,13 @@ export type CaseStudy = {
   accent: "cyan" | "mint" | "amber" | "violet" | "rose" | "slate";
   comingSoon?: boolean;
   videoUrl?: string;
+  videoVariants?: Array<{
+    title: string;
+    description: string;
+    url: string;
+    poster?: string;
+    videoId?: string;
+  }>;
   sections: Array<{
     title: string;
     body: string;
@@ -83,6 +90,7 @@ export const caseCategories = [
   { key: "all", label: "全部场景" },
   { key: "livestream", label: "直播带货" },
   { key: "media", label: "媒体播报" },
+  { key: "tourism", label: "文旅导览" },
   { key: "character", label: "角色内容" },
   { key: "companion", label: "陪伴互动" },
   { key: "experiment", label: "创意实验" },
@@ -130,11 +138,27 @@ export const caseStudies: CaseStudy[] = [
       "面向商品讲解、评论问答和直播间陪跑，把语音回复、字幕和实时视频渲染整合到同一链路。",
     detailIntro:
       "用 OpenTalking 搭建一个可互动的数字人直播间，让商品介绍、用户问题和优惠转化都能通过实时语音和画面完成。",
-    route: "Local GPU 或 OmniRT 高质量路线",
+    route: "双机位直播带货演示",
     features: ["实时问答", "角色音色", "字幕同步"],
-    image: "/images/cases/live-sales.jpeg",
+    image: "/images/cases/ecommerce-live-front-preview.png",
     accent: "amber",
-    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/d9d848c95001834806724661995/SaicQA0Ah7QA.mp4",
+    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcb745001834809665869890/vkxsFysr5REA.mp4",
+    videoVariants: [
+      {
+        title: "正视直播间",
+        description: "正面机位展示商品讲解、优惠信息和直播间视觉元素，适合官网主案例展示。",
+        url: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcb745001834809665869890/vkxsFysr5REA.mp4",
+        poster: "/images/cases/ecommerce-live-front-preview.png",
+        videoId: "case-ecommerce-livestream-front",
+      },
+      {
+        title: "斜视带货机位",
+        description: "加入真实拍摄机位感，突出桌面商品、导购动作和直播场景的空间层次。",
+        url: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/cca683435001834809670031995/aswhi0HNmYkA.mp4",
+        poster: "/images/cases/ecommerce-live-angle-preview.png",
+        videoId: "case-ecommerce-livestream-angle",
+      },
+    ],
     sections: [
       {
         title: "场景挑战",
@@ -150,6 +174,37 @@ export const caseStudies: CaseStudy[] = [
       },
     ],
     outcomes: ["商品讲解自动化", "评论问答实时响应", "字幕与视频同步展示"],
+  },
+  {
+    slug: "huangshan-tour-guide",
+    title: "黄山文旅导览",
+    eyebrow: "沉浸讲解",
+    category: "tourism",
+    categoryLabel: "文旅导览",
+    description:
+      "面向景区、城市展馆和文旅宣传，用数字人讲解自然景观、路线亮点和地域文化。",
+    detailIntro:
+      "以黄山介绍为例，把景区画面、导览口播和数字讲解员结合起来，适合游客中心、城市展厅和线上文旅内容展示。",
+    route: "QuickTalk / FlashTalk",
+    features: ["景区讲解", "沉浸画面", "多语言扩展"],
+    image: "/images/cases/huangshan-guide-preview.png",
+    accent: "mint",
+    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcf735001834809665869970/T9jkqMRNCacA.mp4",
+    sections: [
+      {
+        title: "场景挑战",
+        body: "文旅内容既要讲清景点特色，也要保持画面感染力和讲解节奏，传统拍摄更新成本较高。",
+      },
+      {
+        title: "适合扩展",
+        body: "可以接入景区知识库、路线推荐、多语言导览和游客问答，把单条宣传片扩展成可互动的数字导览员。",
+      },
+      {
+        title: "推荐模型",
+        body: "推荐 QuickTalk / FlashTalk：先快速验证导览脚本和画面融合，再按展厅大屏或宣传片质量要求升级。",
+      },
+    ],
+    outcomes: ["景区讲解视频化", "导览内容可复用", "支持后续多语言与问答扩展"],
   },
   {
     slug: "news-anchor",

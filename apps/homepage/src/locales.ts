@@ -150,6 +150,7 @@ const enCaseCategories = [
   { key: "all", label: "All" },
   { key: "livestream", label: "Live commerce" },
   { key: "media", label: "Media" },
+  { key: "tourism", label: "Tourism" },
   { key: "character", label: "Character content" },
   { key: "companion", label: "Companion" },
   { key: "experiment", label: "Creative demos" },
@@ -197,11 +198,27 @@ const enCaseStudies: CaseStudy[] = [
       "Combine product narration, audience Q&A, captions, speech, and real-time avatar video in one live commerce workflow.",
     detailIntro:
       "Build an interactive AI host that can follow product scripts, answer audience questions, and present offers with synchronized voice and video.",
-    route: "Local GPU or OmniRT quality route",
+    route: "Two-view live commerce demo",
     features: ["Real-time Q&A", "Voice persona", "Caption sync"],
-    image: "/images/cases/live-sales.jpeg",
+    image: "/images/cases/ecommerce-live-front-preview.png",
     accent: "amber",
-    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/d9d848c95001834806724661995/SaicQA0Ah7QA.mp4",
+    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcb745001834809665869890/vkxsFysr5REA.mp4",
+    videoVariants: [
+      {
+        title: "Front-facing livestream",
+        description: "A direct host view for product explanation, offer highlights, and live commerce UI elements.",
+        url: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcb745001834809665869890/vkxsFysr5REA.mp4",
+        poster: "/images/cases/ecommerce-live-front-preview.png",
+        videoId: "case-ecommerce-livestream-front",
+      },
+      {
+        title: "Angled selling setup",
+        description: "A more realistic camera angle with visible products, presenter movement, and livestream staging.",
+        url: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/cca683435001834809670031995/aswhi0HNmYkA.mp4",
+        poster: "/images/cases/ecommerce-live-angle-preview.png",
+        videoId: "case-ecommerce-livestream-angle",
+      },
+    ],
     sections: [
       {
         title: "Scenario Challenge",
@@ -217,6 +234,37 @@ const enCaseStudies: CaseStudy[] = [
       },
     ],
     outcomes: ["Automated product narration", "Real-time audience response", "Synchronized captions and video"],
+  },
+  {
+    slug: "huangshan-tour-guide",
+    title: "Huangshan Tourism Guide",
+    eyebrow: "Immersive narration",
+    category: "tourism",
+    categoryLabel: "Tourism",
+    description:
+      "Use an avatar guide to introduce scenic areas, travel routes, cultural highlights, and destination stories.",
+    detailIntro:
+      "This Huangshan example combines scenic footage, guide narration, and a digital presenter for visitor centers, city exhibitions, and online tourism campaigns.",
+    route: "QuickTalk / FlashTalk",
+    features: ["Scenic narration", "Immersive visuals", "Multilingual-ready"],
+    image: "/images/cases/huangshan-guide-preview.png",
+    accent: "mint",
+    videoUrl: "https://1441945933.vod-qcloud.com/0b66444dvodcq1441945933/742bcf735001834809665869970/T9jkqMRNCacA.mp4",
+    sections: [
+      {
+        title: "Scenario Challenge",
+        body: "Tourism videos need clear destination storytelling, strong visuals, and a consistent narration rhythm, while updates can be costly with traditional shoots.",
+      },
+      {
+        title: "Extension Path",
+        body: "Connect destination knowledge, route recommendations, multilingual narration, and visitor Q&A to turn a video into an interactive digital guide.",
+      },
+      {
+        title: "Recommended Model",
+        body: "Recommended: QuickTalk / FlashTalk. Start by validating narration and scene composition, then upgrade quality for exhibition screens or destination campaigns.",
+      },
+    ],
+    outcomes: ["Turn scenic content into guided video", "Reuse destination scripts", "Extend to multilingual Q&A later"],
   },
   {
     slug: "news-anchor",
@@ -479,7 +527,7 @@ export const siteContent: Record<Language, SiteContent> = {
       capabilityDescription: "OpenTalking 把会话、语音、字幕、播放和模型服务串成完整的数字人产品链路。",
       showcaseEyebrow: "Showcase",
       showcaseTitle: "真实产品场景，为数字人服务而生",
-      showcaseDescription: "用同一套编排层覆盖直播、播报、陪伴、角色内容和端到端演示。",
+      showcaseDescription: "用同一套编排层覆盖直播、文旅导览、播报、陪伴、角色内容和端到端演示。",
       allCasesCta: "全部案例",
       deploymentEyebrow: "Deployment",
       deploymentTitle: "按你的需求匹配不同部署方式",
@@ -603,7 +651,7 @@ export const siteContent: Record<Language, SiteContent> = {
       capabilityDescription: "OpenTalking connects dialogue, voice, captions, playback, and model services into a complete AI avatar workflow.",
       showcaseEyebrow: "Showcase",
       showcaseTitle: "Built for real avatar use cases",
-      showcaseDescription: "Use the same orchestration layer for livestreaming, broadcast, companion experiences, character content, and end-to-end demos.",
+      showcaseDescription: "Use the same orchestration layer for livestreaming, tourism guides, broadcast, companion experiences, character content, and end-to-end demos.",
       allCasesCta: "All cases",
       deploymentEyebrow: "Deployment",
       deploymentTitle: "Pick the right path for your stage",
